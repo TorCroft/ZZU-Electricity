@@ -1,9 +1,7 @@
-name: Fetch Data
+name: Test Python Script
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0,8,16 * * *'
 
 jobs:
   build:
@@ -11,7 +9,8 @@ jobs:
     permissions: write-all
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -23,24 +22,24 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Get current UTC time
-        run: echo "timestamp=$(date -u +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-        id: time
-
       - name: Fetch Data
         env:
           ZZU_CONFIG: ${{ secrets.ZZU_CONFIG }}
           ZZU_NOTIFIER: ${{ secrets.ZZU_NOTIFIER }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
           GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+        run: python3 ./index.py
 
-        run: |
-          python3 ./index.py
-          
-      - name: Push if there are any changes
+      - name: Check for changes
+        id: check_changes
+        run: echo "changes=$(git diff --shortstat HEAD)" >> $GITHUB_OUTPUT
+        
+      - name: Push changes
+        if: ${{ steps.check_changes.outputs.changes != '' }}
         run: |
           git config --global user.email "${{ secrets.EMAIL }}"
           git config --global user.name "${{ secrets.GH_USERNAME }}"
           git status
           git add .
-          git commit -m '${{ steps.time.outputs.timestamp }} UTC' && git push || echo "No changes to commit"
+          git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
+          git push

@@ -99,20 +99,23 @@ class ZZU_API:
         headers["Authorization"] = ""
         response: dict = post(url=self.ecard_host + path, headers=headers, json=body).json()
         if not response.get("success"):
-            raise ZZU_Login_Error(response.get("message"))
+            msg = response.get("message")
+            if "tid" in msg:
+                raise ZZU_TokenError(msg)
+            else:
+                raise ResponseError(msg)
         config.RefreshToken = response["resultData"]["refreshToken"]
         config.ECardAccessToken = response["resultData"]["accessToken"]
 
-    def refresh_access_token(self, retry=True):
+    def refresh_access_token(self):
         logger.info("Refreshing  ECardAccessToken with RefreshToken ...")
         path = "/server/auth/updateToken"
         body = {"refreshToken": config.RefreshToken}
         try:
             response = post(url=self.ecard_host + path, headers=self.__headers_for_ecard, json=body).json()
         except:
-            if retry:
-                self.get_ecard_token()
-                self.refresh_access_token(retry=False)
+            self.get_ecard_token()
+            return
 
         if not response.get("success"):
             raise ResponseError(response.get("message"))
@@ -125,14 +128,22 @@ class ZZU_API:
             self.get_jid_and_tid()
             self.get_ecard_token()
         else:
-            if not config.UserToken:
-                self.login()
-            if not config.JsessionId:
+            try:
+                if not config.UserToken:
+                    self.login()
+                if not config.JsessionId:
+                    self.get_jid_and_tid()
+                if not config.RefreshToken:
+                    self.get_ecard_token()
+                else:
+                    self.refresh_access_token()
+            except ZZU_Login_Error:
+                if retry:
+                    self.token_check(refresh_all=True, retry=False)
+                    return
+            except ZZU_TokenError:
                 self.get_jid_and_tid()
-            if not config.RefreshToken:
                 self.get_ecard_token()
-            else:
-                self.refresh_access_token()
         config.save_config()
 
 

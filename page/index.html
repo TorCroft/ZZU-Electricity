@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.4.3/files/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="shortcut icon" href="./icon.png" type="image/x-icon">
+</head>
+
+<body>
+    <div id="chart-container"></div>
+    <div id="select-box">
+        <label for="timeSplit">Period:</label>
+        <select id="timeSplit" onchange="updateChart()">
+            <!-- Options will be dynamically added here -->
+        </select>
+    </div>
+    <script>
+        const Chart = echarts.init(document.getElementById('chart-container'));
+        let option = {
+            title: {
+                text: 'Balance Over Time',
+                textStyle: {
+                    fontSize: 20,
+                    fontWeight: 'bold'
+                },
+                x: 'center',
+                y: 'top'
+            },
+            xAxis: {
+                name: 'Time',
+                nameLocation: 'end',
+                type: 'category',
+                data: [] // Initialize data as an empty array
+            },
+            yAxis: {
+                name: 'Balance',
+                type: 'value'
+            },
+            series: [{
+                data: [], // Initialize data as an empty array
+                type: 'line',
+                smooth: true,
+                label: {
+                    show: true,
+                    position: 'top'
+                }
+            }],
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                },
+                formatter: function (params) {
+                    return params[0].name + '<br/>' + params[0].marker + ' Balance: ' + params[0].value;
+                }
+            },
+            dataZoom: [
+                {
+                    type: 'slider',
+                    start: 0,
+                    end: 100
+                },
+                {
+                    type: 'inside',
+                    start: 0,
+                    end: 100
+                }
+            ]
+        };
+
+        function fetchData(dataFilepath) {
+            // Fetch JSON data from a local file
+            return fetch(dataFilepath)
+                .then(response => response.json())
+                .catch(error => { console.error('Error loading JSON:', error); throw error; });
+        }
+
+        function setupChart(jsonData) {
+            const times = jsonData.map(function (entry) { return entry.time; });
+            const balances = jsonData.map(function (entry) { return entry.balance; });
+            option.xAxis.data = times;
+            option.series[0].data = balances;
+            Chart.setOption(option);
+        }
+
+
+        function getPreviousMonth(currentMonth) {
+            const selectBox = document.getElementById('timeSplit');
+            const options = selectBox.options;
+            const currentIndex = Array.from(options).findIndex(option => option.value === currentMonth);
+
+            // If the current month is not the last, return the value of the next option
+            if (currentIndex < options.length - 1) {
+                return options[currentIndex + 1].value;
+            } else {
+                // If the current month is the last, you might want to handle this case accordingly
+                // For simplicity, let's return the current month in this example
+                return currentMonth;
+            }
+        }
+
+
+        function updateChart() {
+            const selectedYearMonth = document.getElementById('timeSplit').value;
+            const dataFilepath = `./data/${selectedYearMonth}.json`;
+
+            // Fetch the current JSON data
+            fetchData(dataFilepath).then(jsonData => {
+                // If the current JSON data is too short, try fetching the previous month's data
+                if (jsonData.length < 5) {  // Adjust the threshold as needed
+                    const previousMonth = getPreviousMonth(selectedYearMonth);
+                    const previousDataFilepath = `./data/${previousMonth}.json`;
+                    return fetchData(previousDataFilepath).then(prevJsonData => { return [...prevJsonData.slice(-5), ...jsonData]; });
+                } else { return jsonData; }
+            }).then(combinedData => setupChart(combinedData)).catch(error => console.error('Error setting up chart:', error));
+        }
+
+
+        // Fetch time data and populate select box options
+        fetchData('./time.json')
+            .then(timeData => {
+                const selectBox = document.getElementById('timeSplit');
+                timeData.forEach(yearMonth => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = yearMonth;
+                    optionElement.text = yearMonth;
+                    selectBox.add(optionElement);
+                });
+
+                // Initialize the chart with the first option
+                updateChart();
+            }).catch(error => console.error('Error loading time data:', error));
+    </script>
+
+</body>
+
+</html>

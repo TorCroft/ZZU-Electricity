@@ -1,0 +1,81 @@
+name: Update and Deploy HTML to Pages
+
+on:
+  schedule:
+    - cron: '0 0-15/1,20,23 * * *'
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    outputs:
+      changes: ${{ steps.check_changes.outputs.changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run python script
+        env:
+          ZZU_CONFIG: ${{ secrets.ZZU_CONFIG }}
+          ZZU_NOTIFIER: ${{ secrets.ZZU_NOTIFIER }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+        run: python3 ./index.py
+        
+      - name: Check for changes
+        id: check_changes
+        run: echo "changes=$(git diff --shortstat HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Push changes
+        if: ${{ steps.check_changes.outputs.changes != '' }}
+        run: |
+          git config --global user.email "${{ secrets.EMAIL }}"
+          git config --global user.name "${{ secrets.GH_USERNAME }}"
+          git status
+          git reset --soft HEAD^
+          git add .
+          git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
+          git push --force
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ needs.build.outputs.changes != '' }}
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './page'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

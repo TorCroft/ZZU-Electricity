@@ -3,6 +3,9 @@
 
 <head>
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>ZZU Dorm Electricity Balance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.4.3/files/dist/echarts.min.js"></script>
     <link rel="stylesheet" href="./style.css">
     <link rel="shortcut icon" href="./icon.png" type="image/x-icon">
@@ -109,8 +112,9 @@
             // Fetch the current JSON data
             fetchData(dataFilepath).then(jsonData => {
                 // If the current JSON data is too short, try fetching the previous month's data
-                if (jsonData.length < 5) {  // Adjust the threshold as needed
+                if (jsonData.length < 11) {  // Adjust the threshold as needed
                     const previousMonth = getPreviousMonth(selectedYearMonth);
+                    if (previousMonth === selectedYearMonth) { return jsonData; }
                     const previousDataFilepath = `./data/${previousMonth}.json`;
                     return fetchData(previousDataFilepath).then(prevJsonData => { return [...prevJsonData.slice(-5), ...jsonData]; });
                 } else { return jsonData; }

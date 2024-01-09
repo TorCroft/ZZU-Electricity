@@ -21,57 +21,7 @@
     </div>
     <script>
         const Chart = echarts.init(document.getElementById('chart-container'));
-        let option = {
-            title: {
-                text: 'Balance Over Time',
-                textStyle: {
-                    fontSize: 20,
-                    fontWeight: 'bold'
-                },
-                x: 'center',
-                y: 'top'
-            },
-            xAxis: {
-                name: 'Time',
-                nameLocation: 'end',
-                type: 'category',
-                data: [] // Initialize data as an empty array
-            },
-            yAxis: {
-                name: 'Balance',
-                type: 'value'
-            },
-            series: [{
-                data: [], // Initialize data as an empty array
-                type: 'line',
-                smooth: true,
-                label: {
-                    show: true,
-                    position: 'top'
-                }
-            }],
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'cross'
-                },
-                formatter: function (params) {
-                    return params[0].name + '<br/>' + params[0].marker + ' Balance: ' + params[0].value;
-                }
-            },
-            dataZoom: [
-                {
-                    type: 'slider',
-                    start: 0,
-                    end: 100
-                },
-                {
-                    type: 'inside',
-                    start: 0,
-                    end: 100
-                }
-            ]
-        };
+        let option={title:{text:'Balance Over Time',textStyle:{fontSize:20,fontWeight:'bold'},x:'center',y:'top'},xAxis:{name:'Time',nameLocation:'end',type:'category',data:[]},yAxis:{name:'Balance',type:'value'},series:[{data:[],type:'line',smooth:true,label:{show:true,position:'top'}}],tooltip:{trigger:'axis',axisPointer:{type:'cross'},formatter:function(a){return a[0].name+'<br/>'+a[0].marker+' Balance: '+a[0].value}},dataZoom:[{type:'slider',start:0,end:100},{type:'inside',start:0,end:100}]};
 
         function fetchData(dataFilepath) {
             // Fetch JSON data from a local file

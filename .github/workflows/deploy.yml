@@ -5,12 +5,6 @@ on:
     - cron: '0 0-15/1,20,23 * * *'
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
@@ -18,15 +12,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  run_and_deploy:
+  build:
     runs-on: ubuntu-latest
     permissions: write-all
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      changes: ${{ steps.check_changes.outputs.changes }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -49,15 +44,30 @@ jobs:
       - name: Check for changes
         id: check_changes
         run: echo "changes=$(git diff --shortstat HEAD)" >> $GITHUB_OUTPUT
-      
+
+      - name: Get last commit message
+        id: commit_message
+        run: echo "last_commit_message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
       - name: Push changes
-        if: ${{ steps.check_changes.outputs.changes != '' }}
+        if: ${{ steps.check_changes.outputs.changes != '' && !startsWith(steps.commit_message.outputs.last_commit_message, 'Updated at ') }}
         run: |
           git config --global user.email "${{ secrets.EMAIL }}"
           git config --global user.name "${{ secrets.GH_USERNAME }}"
           git add .
           git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
           git push
+          
+      - name: Force push changes
+        if: ${{ steps.check_changes.outputs.changes != '' && startsWith(steps.commit_message.outputs.last_commit_message, 'Updated at ') }}
+        run: |
+          git config --global user.email "${{ secrets.EMAIL }}"
+          git config --global user.name "${{ secrets.GH_USERNAME }}"
+          git add .
+          git reset --soft HEAD^
+          git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
+          git push --force
+
       
       - name: Setup Pages
         if: ${{ steps.check_changes.outputs.changes != '' }}
@@ -68,8 +78,18 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: './page'
-          
+
+  deploy:
+    needs: build
+    if: ${{ needs.build.outputs.changes != '' }}
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
-        if: ${{ steps.check_changes.outputs.changes != '' }}
         id: deployment
         uses: actions/deploy-pages@v4

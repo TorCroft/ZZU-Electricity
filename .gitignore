@@ -12,6 +12,7 @@ test
 config.json
 pytest/
 pytest_*.*
+page/data/last_30_records.json
 
 # Distribution / packaging
 .Python

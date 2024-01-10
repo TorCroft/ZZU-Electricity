@@ -16,6 +16,7 @@
     <div id="select-box">
         <label for="timeSplit">Period:</label>
         <select id="timeSplit" onchange="updateChart()">
+            <option value="last_30_records">Last 30 records</option>
             <!-- Options will be dynamically added here -->
         </select>
     </div>
@@ -25,9 +26,7 @@
 
         function fetchData(dataFilepath) {
             // Fetch JSON data from a local file
-            return fetch(dataFilepath)
-                .then(response => response.json())
-                .catch(error => { console.error('Error loading JSON:', error); throw error; });
+            return fetch(dataFilepath).then(response => response.json()).catch(error => { console.error('Error loading JSON:', error); throw error; });
         }
 
         function setupChart(jsonData) {
@@ -38,43 +37,14 @@
             Chart.setOption(option);
         }
 
-
-        function getPreviousMonth(currentMonth) {
-            const selectBox = document.getElementById('timeSplit');
-            const options = selectBox.options;
-            const currentIndex = Array.from(options).findIndex(option => option.value === currentMonth);
-
-            // If the current month is not the last, return the value of the next option
-            if (currentIndex < options.length - 1) {
-                return options[currentIndex + 1].value;
-            } else {
-                // If the current month is the last, you might want to handle this case accordingly
-                // For simplicity, let's return the current month in this example
-                return currentMonth;
-            }
-        }
-
-
         function updateChart() {
             const selectedYearMonth = document.getElementById('timeSplit').value;
             const dataFilepath = `./data/${selectedYearMonth}.json`;
-
-            // Fetch the current JSON data
-            fetchData(dataFilepath).then(jsonData => {
-                // If the current JSON data is too short, try fetching the previous month's data
-                if (jsonData.length < 11) {  // Adjust the threshold as needed
-                    const previousMonth = getPreviousMonth(selectedYearMonth);
-                    if (previousMonth === selectedYearMonth) { return jsonData; }
-                    const previousDataFilepath = `./data/${previousMonth}.json`;
-                    return fetchData(previousDataFilepath).then(prevJsonData => { return [...prevJsonData.slice(-5), ...jsonData]; });
-                } else { return jsonData; }
-            }).then(combinedData => setupChart(combinedData)).catch(error => console.error('Error setting up chart:', error));
+            fetchData(dataFilepath).then(jsonData => {setupChart(jsonData);}).catch(error => console.error('Error setting up chart:', error));
         }
 
-
         // Fetch time data and populate select box options
-        fetchData('./time.json')
-            .then(timeData => {
+        fetchData('./time.json').then(timeData => {
                 const selectBox = document.getElementById('timeSplit');
                 timeData.forEach(yearMonth => {
                     const optionElement = document.createElement('option');

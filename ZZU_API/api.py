@@ -1,7 +1,8 @@
-from requests import post, get
+from requests import post, get, exceptions
 from .utils import get_today_date_str, timestamp_13_digit, decode_to_json
 from .logger import logger
 from .config import config
+from time import sleep
 
 REQUIRED_PARAMS = ["building", "area", "level", "room"]
 
@@ -91,21 +92,30 @@ class ZZU_API:
         config.JsessionId = response.history[0].cookies.get("JSESSIONID")
         config.Tid = response.history[0].headers.get("Location").split("?tid=")[1]
 
-    def get_ecard_token(self):
+    def get_ecard_token(self, retry=True):
         logger.info("Start getting RefreshToken and  ECardAccessToken ...")
         path = "/server/auth/getToken"
         body = {"tid": config.Tid}
         headers = self.__headers_for_ecard
         headers["Authorization"] = ""
-        response: dict = post(url=self.ecard_host + path, headers=headers, json=body).json()
-        if not response.get("success"):
-            msg = response.get("message")
+        try:
+            response = post(url=self.ecard_host + path, headers=headers, json=body)
+            response_data: dict = response.json()
+        except (exceptions.ConnectTimeout, exceptions.JSONDecodeError):
+            msg = f"Response from {self.ecard_host + path} has status code: {response.status_code} and reason: {response.reason}"
+            if retry:
+                sleep(60)
+                return self.get_ecard_token(retry=False)
+            else:
+                raise ResponseError(msg)
+        if not response_data.get("success"):
+            msg = response_data.get("message")
             if "tid" in msg:
                 raise ZZU_TokenError(msg)
             else:
                 raise ResponseError(msg)
-        config.RefreshToken = response["resultData"]["refreshToken"]
-        config.ECardAccessToken = response["resultData"]["accessToken"]
+        config.RefreshToken = response_data["resultData"]["refreshToken"]
+        config.ECardAccessToken = response_data["resultData"]["accessToken"]
 
     def refresh_access_token(self):
         logger.info("Refreshing  ECardAccessToken with RefreshToken ...")

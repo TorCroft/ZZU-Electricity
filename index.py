@@ -88,5 +88,5 @@ if __name__ == "__main__":
     if balance <= THRESHOLD:
         notify_admin(title="⚠️宿舍电量预警⚠️", content=f"当前宿舍剩余电量低，为{balance}度。")
     
-    data = record_data({"time": get_today_date_str("%Y-%m-%d %H:%M:%S"), "balance": balance})
+    data = record_data({"time": get_today_date_str("%m-%d %H:%M:%S"), "balance": balance})
     parse_and_update_data(data)

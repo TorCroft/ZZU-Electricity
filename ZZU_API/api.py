@@ -188,7 +188,7 @@ class ZZU_API:
         data = self.get_account_details()["templateList"][3]
         value = data["value"]
         balance = value if value else "None "
-        logger.info(f"Electric balance: {balance + data['unit']}")
+        logger.info(f"The remaining electricity balance is {balance} kilowatt-hours.")
         return balance
 
     def c2c_transaction(self, from_id: str, to_id: str, amount: int, card_password: str):

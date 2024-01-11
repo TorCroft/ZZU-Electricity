@@ -5,8 +5,6 @@ on:
     - cron: '0 0-15/1,20,23 * * *'
   workflow_dispatch:
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -39,7 +37,9 @@ jobs:
           ZZU_NOTIFIER: ${{ secrets.ZZU_NOTIFIER }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
           GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-        run: python3 ./index.py
+        run: |
+          python3 ./index.py
+          python3 ./markdown.py >> $GITHUB_STEP_SUMMARY
         
       - name: Check for changes
         id: check_changes
@@ -63,11 +63,10 @@ jobs:
         run: |
           git config --global user.email "${{ secrets.EMAIL }}"
           git config --global user.name "${{ secrets.GH_USERNAME }}"
-          git add .
           git reset --soft HEAD^
+          git add .
           git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
           git push --force
-
       
       - name: Setup Pages
         if: ${{ steps.check_changes.outputs.changes != '' }}

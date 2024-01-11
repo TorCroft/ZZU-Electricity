@@ -47,6 +47,13 @@ def find_available_classroom(data, floor: str, periods: list[int]):
 
     return available_classrooms
 
+def load_data_from_json(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+def dump_data_into_json(data, file_path, **kwargs):
+    with open(file_path, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, **kwargs)
 
 def encrypt(public_key, secret_value) -> str:
     """
@@ -97,6 +104,6 @@ def update_secret(secret_name: str, value: str, owner: str, repo: str, token: st
     payload = {"encrypted_value": encrypt(key, value), "key_id": key_id}
     response = requests.put(url, headers=headers, json=payload)
     if response.status_code == 204:
-        logger.info(f"Secret {secret_name} 更新成功")
+        logger.info(f"Secret [{secret_name}] updated.")
     else:
-        logger.error(f"Secret {secret_name} 更新失败，错误信息：{response.content}")
+        logger.error(f"Secret [{secret_name}] update failed, message: {response.content}")

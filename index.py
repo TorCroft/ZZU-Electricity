@@ -1,5 +1,7 @@
 import json
-from os import getenv, makedirs, path, listdir
+from os import getenv, makedirs, path
+from glob import glob
+from datetime import datetime
 from onepush import notify
 from ZZU_API.logger import logger
 from ZZU_API.api import ZZU_API
@@ -45,9 +47,8 @@ def update_time_list() -> list[str]:
     if not path.exists(JSON_FOLDER_PATH):
         raise FileNotFoundError(f"The specified folder path '{JSON_FOLDER_PATH}' does not exist.")
     
-    all_files = listdir(JSON_FOLDER_PATH)
-    json_files = [path.splitext(file)[0] for file in all_files if not file.startswith("l")]
-    json_files.reverse()
+    json_files = [path.splitext(path.basename(it))[0] for it in glob(path.join(JSON_FOLDER_PATH, "????-??.json"))]
+    json_files = sorted(json_files, key=lambda x: datetime.strptime(x, '%Y-%m'), reverse=True)
     dump_data_into_json(json_files, "./page/time.json")
 
     return json_files
@@ -63,7 +64,7 @@ def parse_and_update_data(existing_data):
             last_month_data = load_data_from_json(file_path=f"{JSON_FOLDER_PATH}/{time_file_list[1]}.json")
             if records_to_retrieve > len(last_month_data):
                 records_to_retrieve = len(last_month_data)
-            existing_data = last_month_data[:records_to_retrieve] + existing_data
+            existing_data = last_month_data[-records_to_retrieve:] + existing_data
     else:
         existing_data = existing_data[-MAX_DISPLAY_NUM:]
 

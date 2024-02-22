@@ -147,13 +147,10 @@ class ZZU_API:
                     self.get_ecard_token()
                 else:
                     self.refresh_access_token()
-            except ZZU_Login_Error:
+            except (ZZU_Login_Error, ZZU_TokenError):
                 if retry:
                     self.token_check(refresh_all=True, retry=False)
                     return
-            except ZZU_TokenError:
-                self.get_jid_and_tid()
-                self.get_ecard_token()
         config.save_config()
 
 

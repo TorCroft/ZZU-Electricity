@@ -35,7 +35,6 @@ jobs:
         env:
           ZZU_CONFIG: ${{ secrets.ZZU_CONFIG }}
           ZZU_NOTIFIER: ${{ secrets.ZZU_NOTIFIER }}
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
           GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
         run: |
           python3 ./index.py
@@ -53,7 +52,7 @@ jobs:
         if: ${{ steps.check_changes.outputs.changes != '' && !startsWith(steps.commit_message.outputs.last_commit_message, 'Updated at ') }}
         run: |
           git config --global user.email "${{ secrets.EMAIL }}"
-          git config --global user.name "${{ secrets.GH_USERNAME }}"
+          git config --global user.name "${GITHUB_ACTOR}"
           git add .
           git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
           git push
@@ -62,7 +61,7 @@ jobs:
         if: ${{ steps.check_changes.outputs.changes != '' && startsWith(steps.commit_message.outputs.last_commit_message, 'Updated at ') }}
         run: |
           git config --global user.email "${{ secrets.EMAIL }}"
-          git config --global user.name "${{ secrets.GH_USERNAME }}"
+          git config --global user.name "${GITHUB_ACTOR}"
           git reset --soft HEAD^
           git add .
           git commit -m "Updated at $(date -u +'%Y-%m-%d %H:%M:%S') UTC"

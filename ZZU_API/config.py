@@ -38,7 +38,7 @@ class Config:
             data[key] = self.__dict__[key]
         data.update(**kwargs)
         if "ZZU_CONFIG" in os.environ:
-            update_secret(secret_name="ZZU_CONFIG", value=json.dumps(data), owner=os.environ["GH_USERNAME"], repo="ZZU-Electricity", token=os.environ["GH_ACCESS_TOKEN"])
+            update_secret(secret_name="ZZU_CONFIG", value=json.dumps(data), owner=os.environ["GITHUB_ACTOR"], repo="ZZU-Electricity", token=os.environ["GH_ACCESS_TOKEN"])
         else:
             with open(self.path, "w", encoding="utf-8") as f:
                 json.dump(data, f)
